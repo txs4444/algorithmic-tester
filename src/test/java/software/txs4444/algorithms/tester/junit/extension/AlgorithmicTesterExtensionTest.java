@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(AlgorithmicTesterExtension.class)
-class TestDataFileLoaderTest {
+class AlgorithmicTesterExtensionTest {
 
     @Test
     public void shouldLoadInputData(@InputData(file = "extension/inputExtensionTestContent")InputStream inputStream) throws IOException {

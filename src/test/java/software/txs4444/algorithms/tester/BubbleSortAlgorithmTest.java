@@ -2,9 +2,9 @@ package software.txs4444.algorithms.tester;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import software.txs4444.algorithms.tester.junit.extension.AlgorithmicTesterExtension;
 import software.txs4444.algorithms.tester.junit.extension.InputData;
 import software.txs4444.algorithms.tester.junit.extension.OutputData;
-import software.txs4444.algorithms.tester.junit.extension.AlgorithmicTesterExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
