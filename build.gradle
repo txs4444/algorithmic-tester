@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation(platform('org.junit:junit-bom:5.7.0'))
+
+    implementation('org.junit.jupiter:junit-jupiter')
+    implementation('org.assertj:assertj-core:3.18.0')
+    implementation('org.slf4j:slf4j-api:1.7.25')
+    implementation('org.slf4j:slf4j-simple:1.7.30')
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
