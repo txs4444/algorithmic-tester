@@ -2,15 +2,15 @@ package software.txs4444.algorithms.tester;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import software.txs4444.algorithms.tester.junit.extension.AlgorithmicTesterExtension;
 import software.txs4444.algorithms.tester.junit.extension.InputData;
 import software.txs4444.algorithms.tester.junit.extension.OutputData;
+import software.txs4444.algorithms.tester.junit.extension.SingleCaseAlgorithmicTesterExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-@ExtendWith(AlgorithmicTesterExtension.class)
+@ExtendWith(SingleCaseAlgorithmicTesterExtension.class)
 public class BubbleSortAlgorithmTest {
     private final BubbleSortAlgorithm testedObject = new BubbleSortAlgorithm();
 

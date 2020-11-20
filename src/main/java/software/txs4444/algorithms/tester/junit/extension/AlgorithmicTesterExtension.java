@@ -1,91 +1,131 @@
 package software.txs4444.algorithms.tester.junit.extension;
 
+import lombok.Value;
+import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.assertj.core.util.Sets;
 import org.junit.jupiter.api.extension.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.*;
+import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
-public class AlgorithmicTesterExtension implements ParameterResolver, AfterTestExecutionCallback {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmicTesterExtension.class);
-    private static final ExtensionContext.Namespace TEST_DATA_FILE_LOADER_NAMESPACE = ExtensionContext.Namespace.create(AlgorithmicTesterExtension.class);
-
-    @Override
-    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return parameterContext.isAnnotated(InputData.class) || parameterContext.isAnnotated(OutputData.class);
-    }
+public class AlgorithmicTesterExtension implements TestTemplateInvocationContextProvider {
 
     @Override
-    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        if (parameterContext.isAnnotated(InputData.class)) {
-            InputStream inputDataStream = getInputStreamOfInputData(parameterContext);
-            getThisExtensionsStore(extensionContext).put(Resource.INPUT_DATA_STREAM, inputDataStream);
-            return inputDataStream;
-        }
-        if (parameterContext.isAnnotated(OutputData.class)) {
-            InputStream outputStreamData = getInputStreamOfOutputData(parameterContext);
-            getThisExtensionsStore(extensionContext).put(Resource.OUTPUT_DATA_STREAM, outputStreamData);
-            ByteArrayOutputStream containerForAlgorithmsOutput = new ByteArrayOutputStream();
-            getThisExtensionsStore(extensionContext).put(Resource.ALGORITHMS_OUTPUT_RESULT_STREAM, containerForAlgorithmsOutput);
-            return containerForAlgorithmsOutput;
-        }
-        return null;
+    public boolean supportsTestTemplate(ExtensionContext context) {
+        Method testMethod = getTestMethod(context);
+        AlgorithmTestCases algorithmTestCasesAnnotation = testMethod.getAnnotation(AlgorithmTestCases.class);
+        int parameterCount = testMethod.getParameterCount();
+        Set<Class<?>> parameterTypes = Set.of(testMethod.getParameterTypes());
+        return algorithmTestCasesAnnotation != null
+                && parameterCount == 2
+                && parameterTypes.contains(InputStream.class)
+                && parameterTypes.contains(OutputStream.class);
     }
 
     @Override
-    public void afterTestExecution(ExtensionContext context) {
-        if (isOutputStreamProvided(context)) {
-            ByteArrayOutputStream algorithmsOutputResultStream = (ByteArrayOutputStream) getThisExtensionsStore(context).get(Resource.ALGORITHMS_OUTPUT_RESULT_STREAM);
-            String expectedAlgorithmsResult = getExpectedAlgorithmsResult(context);
-            assertThat(algorithmsOutputResultStream.toString()).isEqualTo(expectedAlgorithmsResult);
+    public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext context) {
+        Method testMethod = getTestMethod(context);
+        AlgorithmTestCases algorithmTestCasesAnnotation = testMethod.getAnnotation(AlgorithmTestCases.class);
+        return loadTestCases(algorithmTestCasesAnnotation.directory())
+                .map(this::createTestTemplateContextForInputData);
+    }
+
+    private TestTemplateInvocationContext createTestTemplateContextForInputData(TestCase testCase) {
+        return new TestTemplateInvocationContext() {
+            @Override
+            public String getDisplayName(int invocationIndex) {
+                return testCase.getName();
+            }
+
+            @Override
+            public List<Extension> getAdditionalExtensions() {
+                return Collections.singletonList(
+                        new SingleCaseAlgorithmicTesterExtension(
+                                new TestCaseDataProvider() {
+                                    @Override
+                                    public InputStream inputData(ParameterContext parameterContext) {
+                                        return testCase.getInput();
+                                    }
+
+                                    @Override
+                                    public InputStream expectedOutputData(ParameterContext parameterContext) {
+                                        return testCase.getExpectedOutput();
+                                    }
+
+                                    @Override
+                                    public boolean isInputDataParameter(ParameterContext parameterContext) {
+                                        return parameterContext.isAnnotated(TestCaseInput.class);
+                                    }
+
+                                    @Override
+                                    public boolean isExpectedOutputDataParameter(ParameterContext parameterContext) {
+                                        return parameterContext.isAnnotated(TestCaseOutput.class);
+                                    }
+                                }
+                        )
+                );
+            }
+        };
+    }
+
+    private Stream<TestCase> loadTestCases(String directory) {
+        SortedSet<File> inputFiles = findFiles(directory, "input[0-9]+");
+        SortedSet<File> outputFiles = findFiles(directory, "output[0-9]+");
+        if (inputFiles.size() != outputFiles.size()) {
+            throw new IllegalStateException("Number of input files differ from output files");
         }
-        closeResources(context);
-    }
-
-    private boolean isOutputStreamProvided(ExtensionContext context) {
-        return getThisExtensionsStore(context).get(Resource.OUTPUT_DATA_STREAM) != null;
-    }
-
-    private void closeResources(ExtensionContext context) {
-        for(Resource resourceType : Resource.values()) {
-            Closeable resourceToClose = getThisExtensionsStore(context).get(resourceType, Closeable.class);
-            if (resourceToClose != null) {
-                try {
-                    resourceToClose.close();
-                } catch (IOException e) {
-                    LOGGER.warn("Could not close resource {}", resourceType, e);
-                }
+        Iterator<File> inputFilesIterator = inputFiles.iterator();
+        Iterator<File> outputFilesIterator = outputFiles.iterator();
+        List<TestCase> testCases = new ArrayList<>();
+        while (inputFilesIterator.hasNext() && outputFilesIterator.hasNext()) {
+            File inputFile = inputFilesIterator.next();
+            String inputFileSuffixIndex = inputFile.getName().substring(5);
+            File outputFile = outputFilesIterator.next();
+            String outputFileSuffixIndex = outputFile.getName().substring(6);
+            if (!inputFileSuffixIndex.equals(outputFileSuffixIndex)) {
+                throw new IllegalStateException("No corresponding input-output for input" + inputFileSuffixIndex);
+            }
+            try {
+                testCases.add(TestCase.of(inputFileSuffixIndex, new FileInputStream(inputFile), new FileInputStream(outputFile)));
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException("Could not load input/output for test case: " + outputFileSuffixIndex, e);
             }
         }
+        return testCases.stream();
     }
 
-    private String getExpectedAlgorithmsResult(ExtensionContext context) {
-        InputStream expectedOutputDataStream = (InputStream) getThisExtensionsStore(context).get(Resource.OUTPUT_DATA_STREAM);
-        BufferedReader inputStreamReader = new BufferedReader(new InputStreamReader(expectedOutputDataStream));
-        return inputStreamReader.lines().collect(Collectors.joining("\n"));
+    private SortedSet<File> findFiles(String directory, String inputFilesPattern) {
+        URL directoryUrl = getClass().getClassLoader().getResource(directory);
+        if (Objects.isNull(directoryUrl)) {
+            throw new AlgorithmTestCaseDataFilesException(String.format("Could not open data directory: %s", directory));
+        }
+        URI uri = null;
+        try {
+            uri = directoryUrl.toURI();
+        } catch (URISyntaxException e) {
+            throw new AlgorithmTestCaseDataFilesException(String.format("Could not open data directory: %s", directoryUrl), e);
+        }
+        File resourceDir = new File(uri);
+        File[] inputFiles = resourceDir.listFiles((FileFilter) new RegexFileFilter(inputFilesPattern));
+        SortedSet<File> sortedInputFiles = Sets.newTreeSet(inputFiles);
+        return sortedInputFiles;
     }
 
-    private InputStream getInputStreamOfOutputData(ParameterContext parameterContext) {
-        Optional<OutputData> annotation = parameterContext.findAnnotation(OutputData.class);
-        OutputData outputData = annotation.get();
-        String filePath = outputData.file();
-        return getClass().getClassLoader().getResourceAsStream(filePath);
+    private Method getTestMethod(ExtensionContext context) {
+        return context.getTestMethod().orElseThrow(() -> new IllegalStateException("No test method"));
     }
 
-    private InputStream getInputStreamOfInputData(ParameterContext parameterContext) {
-        Optional<InputData> annotation = parameterContext.findAnnotation(InputData.class);
-        InputData inputData = annotation.get();
-        String filePath = inputData.file();
-        return getClass().getClassLoader().getResourceAsStream(filePath);
-    }
 
-    private static ExtensionContext.Store getThisExtensionsStore(ExtensionContext context) {
-        return context.getStore(TEST_DATA_FILE_LOADER_NAMESPACE);
+    @Value(staticConstructor = "of")
+    static class TestCase {
+        String name;
+        InputStream input;
+        InputStream expectedOutput;
     }
-
-    private enum Resource {INPUT_DATA_STREAM, ALGORITHMS_OUTPUT_RESULT_STREAM, OUTPUT_DATA_STREAM}
 }
