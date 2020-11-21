@@ -1,72 +1,102 @@
 package software.txs4444.algorithms.tester.junit.extension;
 
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.platform.testkit.engine.EngineExecutionResults;
+import org.junit.platform.testkit.engine.EngineTestKit;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
+import static org.junit.platform.testkit.engine.EventConditions.event;
+import static org.junit.platform.testkit.engine.EventConditions.finishedWithFailure;
+import static org.junit.platform.testkit.engine.TestExecutionResultConditions.instanceOf;
 
-@ExtendWith(SingleCaseAlgorithmicTesterExtension.class)
 class SingleCaseAlgorithmicTesterExtensionTest {
+    private static final String INPUT_FILE_CONTENT = "input test content\n" +
+            "any text\n" +
+            "in few lines";
+    private static final String OUTPUT_FILE_CONTENT = "output test content\n" +
+            "any text\n" +
+            "in few lines";
 
     @Test
-    public void shouldLoadInputData(@InputData(file = "extension/inputExtensionTestContent")InputStream inputStream) throws IOException {
-        // given
-        Path path = Paths.get(getClass().getClassLoader().getResource("extension/inputExtensionTestContent").getPath());
-        BufferedReader expectedContentReader = Files.newBufferedReader(path);
-        String expectedContent = expectedContentReader.lines().collect(Collectors.joining("\n"));
-
-        // when
-        BufferedReader providedContentReader = new BufferedReader(new InputStreamReader(inputStream));
-        String providedContent = providedContentReader.lines().collect(Collectors.joining("\n"));
-
-        // then
-        assertThat(providedContent)
-                .isEqualTo(expectedContent);
-    }
-
-    @Test
-    public void shouldLoadExpectedOutputDataAndCompareItWithContentWrittenToInputStream(
-            @OutputData(file = "extension/outputExtensionTestContent") OutputStream outputStream
-    ) throws IOException {
+    @DisplayName("Should pass by providing correct input data and output data equal to output stream content")
+    public void shouldRunSuccessfullyWellDefinedTestMethod() {
         // given
 
         // when
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-        writer.write("output test content");
-        writer.newLine();
-        writer.write("any text");
-        writer.newLine();
-        writer.write("in few lines");
-        writer.flush();
+        EngineExecutionResults results = execute(PositiveTestCase.class);
 
         // then
-        // Extension does assertion against outputStream content
+        results.testEvents().assertStatistics(stats -> stats.started(1).succeeded(1));
     }
 
-    @Disabled
     @Test
-    public void shouldFailWhenExpectedResultDontMatchOutputStreamContent(
-            @OutputData(file = "extension/outputExtensionTestContent") OutputStream outputStream
-    ) throws IOException {
+    @DisplayName("Should fail with output stream content not matching output data which is verified by extension")
+    public void shouldFailWhenWrongOutputStreamContentIsWritten() {
         // given
 
         // when
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-        writer.write("not expected");
-        writer.flush();
+        EngineExecutionResults results = execute(NegativeTestCase.class);
 
         // then
-        // No way to test it since there is no way to catch exception thrown by AlgorithmicTesterExtension
-        // TestExecutionExceptionHandler - Allow to handle exception thrown immediately by test method
-        // LifecycleMethodExecutionExceptionHandler - Only for methods e.g. method annotated with @AfterEach, but not capable of handle exception
-        // thrown by AfterEachCallback
+        results.testEvents()
+                .assertStatistics(stats -> stats.started(1).failed(1));
+        results.testEvents()
+                .assertThatEvents()
+                .haveExactly(1, event(finishedWithFailure(instanceOf(AssertionFailedError.class))));
     }
 
+    private EngineExecutionResults execute(Class<?> testClass) {
+        return EngineTestKit.engine("junit-jupiter")
+                .selectors(selectClass(testClass))
+                .execute();
+    }
+
+    static class PositiveTestCase {
+        @Test
+        @ExtendWith(SingleCaseAlgorithmicTesterExtension.class)
+        void correctTestMethod(
+                @InputData(file = "extension/inputExtensionTestContent") InputStream inputStream,
+                @OutputData(file = "extension/outputExtensionTestContent") OutputStream outputStream
+        ) {
+            // given
+            // input data provider by extension
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String inputProvidedByExtension = reader.lines().collect(Collectors.joining("\n"));
+
+            // when
+            PrintWriter printWriter = new PrintWriter(outputStream);
+            printWriter.print(OUTPUT_FILE_CONTENT);
+            printWriter.flush();
+
+
+            // then
+            assertThat(inputProvidedByExtension)
+                    .isEqualTo(INPUT_FILE_CONTENT);
+        }
+    }
+
+    static class NegativeTestCase {
+        @Test
+        @ExtendWith(SingleCaseAlgorithmicTesterExtension.class)
+        void incorrectOutputStreamContent(
+                @OutputData(file = "extension/outputExtensionTestContent") OutputStream outputStream
+        ) {
+            // given
+
+            // when
+            PrintWriter printWriter = new PrintWriter(outputStream);
+            printWriter.println("Any content not matching file's content");
+            printWriter.flush();
+
+            // then
+            // output stream is verified against OutputData's file content by extension
+        }
+    }
 }

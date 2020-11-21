@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import java.io.InputStream;
 import java.util.Optional;
 
-public class SingleTestCaseDataProvider implements TestCaseDataProvider {
+class SingleTestCaseDataProvider implements TestCaseDataProvider {
     @Override
     public InputStream inputData(ParameterContext parameterContext) {
         Optional<InputData> annotation = parameterContext.findAnnotation(InputData.class);

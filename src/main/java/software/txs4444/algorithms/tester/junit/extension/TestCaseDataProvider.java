@@ -4,7 +4,7 @@ import org.junit.jupiter.api.extension.ParameterContext;
 
 import java.io.InputStream;
 
-public interface TestCaseDataProvider {
+interface TestCaseDataProvider {
     InputStream inputData(ParameterContext parameterContext);
     InputStream expectedOutputData(ParameterContext parameterContext);
 
