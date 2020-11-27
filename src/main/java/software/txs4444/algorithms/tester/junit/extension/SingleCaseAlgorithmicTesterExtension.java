@@ -25,9 +25,19 @@ public class SingleCaseAlgorithmicTesterExtension implements ParameterResolver, 
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return extensionContext.getTestMethod().isPresent()
-                && (testCaseDataProvider.isInputDataParameter(parameterContext)
-                    || testCaseDataProvider.isExpectedOutputDataParameter(parameterContext));
+        if (extensionContext.getTestMethod().isPresent()) {
+            boolean isRecognizedParameter = testCaseDataProvider.isInputDataParameter(parameterContext)
+                    || testCaseDataProvider.isExpectedOutputDataParameter(parameterContext);
+            if (!isRecognizedParameter) {
+                LOGGER.warn(
+                        "Parameter {} of method {} is neither input nor output parameter",
+                        parameterContext.getParameter().getName(),
+                        extensionContext.getTestMethod().get().toGenericString()
+                );
+            }
+            return isRecognizedParameter;
+        }
+        return false;
     }
 
     @Override
@@ -44,6 +54,7 @@ public class SingleCaseAlgorithmicTesterExtension implements ParameterResolver, 
             getThisExtensionsStore(extensionContext).put(Resource.ALGORITHMS_OUTPUT_RESULT_STREAM, containerForAlgorithmsOutput);
             return containerForAlgorithmsOutput;
         }
+        LOGGER.error("Parameter {} could not be resolved", parameterContext.getParameter().getName());
         return null;
     }
 

@@ -1,9 +1,13 @@
 package software.txs4444.algorithms.tester.junit.extension;
 
-import lombok.Value;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.assertj.core.util.Sets;
-import org.junit.jupiter.api.extension.*;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
+import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -15,6 +19,7 @@ import java.util.stream.Stream;
 
 
 public class AlgorithmicTesterExtension implements TestTemplateInvocationContextProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmicTesterExtension.class);
 
     @Override
     public boolean supportsTestTemplate(ExtensionContext context) {
@@ -22,10 +27,14 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
         AlgorithmTestCases algorithmTestCasesAnnotation = testMethod.getAnnotation(AlgorithmTestCases.class);
         int parameterCount = testMethod.getParameterCount();
         Set<Class<?>> parameterTypes = Set.of(testMethod.getParameterTypes());
-        return algorithmTestCasesAnnotation != null
-                && parameterCount == 2
+        boolean isMethodAlgorithmTest = algorithmTestCasesAnnotation != null;
+        boolean hasMethodCorrectParams = parameterCount == 2
                 && parameterTypes.contains(InputStream.class)
                 && parameterTypes.contains(OutputStream.class);
+        if(isMethodAlgorithmTest && !hasMethodCorrectParams) {
+            LOGGER.warn("Method {} is not Algorithm Test method - has no required parameters defined", testMethod.toGenericString());
+        }
+        return isMethodAlgorithmTest && hasMethodCorrectParams;
     }
 
     @Override
@@ -46,29 +55,7 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
             @Override
             public List<Extension> getAdditionalExtensions() {
                 return Collections.singletonList(
-                        new SingleCaseAlgorithmicTesterExtension(
-                                new TestCaseDataProvider() {
-                                    @Override
-                                    public InputStream inputData(ParameterContext parameterContext) {
-                                        return testCase.getInput();
-                                    }
-
-                                    @Override
-                                    public InputStream expectedOutputData(ParameterContext parameterContext) {
-                                        return testCase.getExpectedOutput();
-                                    }
-
-                                    @Override
-                                    public boolean isInputDataParameter(ParameterContext parameterContext) {
-                                        return parameterContext.isAnnotated(TestCaseInput.class);
-                                    }
-
-                                    @Override
-                                    public boolean isExpectedOutputDataParameter(ParameterContext parameterContext) {
-                                        return parameterContext.isAnnotated(TestCaseOutput.class);
-                                    }
-                                }
-                        )
+                        new SingleCaseAlgorithmicTesterExtension(PredefinedTestCaseDataProvider.of(testCase))
                 );
             }
         };
@@ -78,6 +65,7 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
         SortedSet<File> inputFiles = findFiles(directory, "input[0-9]+");
         SortedSet<File> outputFiles = findFiles(directory, "output[0-9]+");
         if (inputFiles.size() != outputFiles.size()) {
+            LOGGER.error("Number of input files differ from number of defined output files under directory: {}", directory);
             throw new IllegalStateException("Number of input files differ from output files");
         }
         Iterator<File> inputFilesIterator = inputFiles.iterator();
@@ -89,11 +77,13 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
             File outputFile = outputFilesIterator.next();
             String outputFileSuffixIndex = outputFile.getName().substring(6);
             if (!inputFileSuffixIndex.equals(outputFileSuffixIndex)) {
+                LOGGER.error("There is no matching output for {} under directory: {}", inputFile.getName(), directory);
                 throw new IllegalStateException("No corresponding input-output for input" + inputFileSuffixIndex);
             }
             try {
                 testCases.add(TestCase.of(inputFileSuffixIndex, new FileInputStream(inputFile), new FileInputStream(outputFile)));
             } catch (FileNotFoundException e) {
+                LOGGER.error("Could not find input ({}) or output ({})", inputFile.getName(), outputFile.getName());
                 throw new RuntimeException("Could not load input/output for test case: " + outputFileSuffixIndex, e);
             }
         }
@@ -105,7 +95,7 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
         if (Objects.isNull(directoryUrl)) {
             throw new AlgorithmTestCaseDataFilesException(String.format("Could not open data directory: %s", directory));
         }
-        URI uri = null;
+        URI uri;
         try {
             uri = directoryUrl.toURI();
         } catch (URISyntaxException e) {
@@ -119,13 +109,5 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
 
     private Method getTestMethod(ExtensionContext context) {
         return context.getTestMethod().orElseThrow(() -> new IllegalStateException("No test method"));
-    }
-
-
-    @Value(staticConstructor = "of")
-    static class TestCase {
-        String name;
-        InputStream input;
-        InputStream expectedOutput;
     }
 }

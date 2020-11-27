@@ -5,14 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ParameterContext;
 
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -147,7 +144,7 @@ class SingleTestCaseDataProviderTest {
         TestParameterContext parameterContext = new TestParameterContext(outputDataWithWrongType);
 
         // when
-        boolean isExpectedOutputDataParameter = testedObject.isInputDataParameter(parameterContext);
+        boolean isExpectedOutputDataParameter = testedObject.isExpectedOutputDataParameter(parameterContext);
 
         // then
         assertThat(isExpectedOutputDataParameter)
@@ -195,45 +192,5 @@ class SingleTestCaseDataProviderTest {
         ) {
             // noting to do, just to provide correct method signature to test
         }
-    }
-
-    private static class TestParameterContext implements ParameterContext {
-        private static final String UNSUPPORTED_OPPERATION_ERROR_MSG = "This implementation of ParameterContext is only for testing purpose - not all methods are implemented";
-        private final Parameter parameter;
-
-        public TestParameterContext(Parameter parameter) {
-            this.parameter = parameter;
-        }
-
-        @Override
-        public Parameter getParameter() {
-            return parameter;
-        }
-
-        @Override
-        public int getIndex() {
-            throw new UnsupportedOperationException(UNSUPPORTED_OPPERATION_ERROR_MSG);
-        }
-
-        @Override
-        public Optional<Object> getTarget() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isAnnotated(Class<? extends Annotation> annotationType) {
-            return findAnnotation(annotationType).isPresent();
-        }
-
-        @Override
-        public <A extends Annotation> Optional<A> findAnnotation(Class<A> annotationType) {
-            return Optional.ofNullable(parameter.getAnnotation(annotationType));
-        }
-
-        @Override
-        public <A extends Annotation> List<A> findRepeatableAnnotations(Class<A> annotationType) {
-            throw new UnsupportedOperationException();
-        }
-
     }
 }

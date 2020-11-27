@@ -30,10 +30,11 @@ class SingleCaseAlgorithmicTesterExtensionTest {
         // given
 
         // when
-        EngineExecutionResults results = execute(PositiveTestCase.class);
+        EngineExecutionResults testExecutionResult = execute(PositiveTestCase.class);
 
         // then
-        results.testEvents().assertStatistics(stats -> stats.started(1).succeeded(1));
+        testExecutionResult.testEvents()
+                .assertStatistics(stats -> stats.started(1).succeeded(1));
     }
 
     @Test
@@ -42,12 +43,12 @@ class SingleCaseAlgorithmicTesterExtensionTest {
         // given
 
         // when
-        EngineExecutionResults results = execute(NegativeTestCase.class);
+        EngineExecutionResults testExecutionResult = execute(NegativeTestCase.class);
 
         // then
-        results.testEvents()
+        testExecutionResult.testEvents()
                 .assertStatistics(stats -> stats.started(1).failed(1));
-        results.testEvents()
+        testExecutionResult.testEvents()
                 .assertThatEvents()
                 .haveExactly(1, event(finishedWithFailure(instanceOf(AssertionFailedError.class))));
     }
