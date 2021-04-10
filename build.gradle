@@ -1,9 +1,25 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
+
+group 'software.txs4444.algorithms'
+version '0.0.1-SNAPSHOT'
 
 repositories {
     jcenter()
+}
+
+publishing {
+    publications {
+        localLibrary(MavenPublication) {
+            from components.java
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
 }
 
 dependencies {

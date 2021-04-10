@@ -26,7 +26,7 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
         Method testMethod = getTestMethod(context);
         AlgorithmTestCases algorithmTestCasesAnnotation = testMethod.getAnnotation(AlgorithmTestCases.class);
         int parameterCount = testMethod.getParameterCount();
-        Set<Class<?>> parameterTypes = Set.of(testMethod.getParameterTypes());
+        List<Class<?>> parameterTypes = List.of(testMethod.getParameterTypes());
         boolean isMethodAlgorithmTest = algorithmTestCasesAnnotation != null;
         boolean hasMethodCorrectParams = parameterCount == 2
                 && parameterTypes.contains(InputStream.class)
@@ -103,8 +103,7 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
         }
         File resourceDir = new File(uri);
         File[] inputFiles = resourceDir.listFiles((FileFilter) new RegexFileFilter(inputFilesPattern));
-        SortedSet<File> sortedInputFiles = Sets.newTreeSet(inputFiles);
-        return sortedInputFiles;
+        return Sets.newTreeSet(inputFiles);
     }
 
     private Method getTestMethod(ExtensionContext context) {
