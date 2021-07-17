@@ -1,10 +1,11 @@
-package software.txs4444.algorithms.tester;
+package software.txs4444.algorithms.tester.junit.extension.end2end.singleCaseAlgorithmicTesterExtension;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import software.txs4444.algorithms.tester.junit.extension.InputData;
 import software.txs4444.algorithms.tester.junit.extension.OutputData;
 import software.txs4444.algorithms.tester.junit.extension.SingleCaseAlgorithmicTesterExtension;
+import software.txs4444.algorithms.tester.junit.extension.end2end.BubbleSortAlgorithm;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +18,8 @@ public class BubbleSortAlgorithmTest {
 
     @Test
     public void testDataSet01(
-            @InputData(file = "sortingAlgorithm/input01") InputStream inputStream,
-            @OutputData(file = "sortingAlgorithm/output01") OutputStream outputStream
+            @InputData(file = "end2end/input01") InputStream inputStream,
+            @OutputData(file = "end2end/output01") OutputStream outputStream
     ) throws IOException {
         // given
         // Input data are loaded into inputStream from specified file
@@ -32,8 +33,8 @@ public class BubbleSortAlgorithmTest {
 
     @Test
     public void testDataSet02(
-            @InputData(file = "sortingAlgorithm/input02") InputStream inputStream,
-            @OutputData(file = "sortingAlgorithm/output02") OutputStream outputStream
+            @InputData(file = "end2end/input02") InputStream inputStream,
+            @OutputData(file = "end2end/output02") OutputStream outputStream
     ) throws IOException {
         // given
         // Input data are loaded into inputStream from specified file

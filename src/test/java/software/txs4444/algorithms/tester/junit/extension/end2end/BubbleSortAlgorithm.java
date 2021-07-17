@@ -1,4 +1,4 @@
-package software.txs4444.algorithms.tester;
+package software.txs4444.algorithms.tester.junit.extension.end2end;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,12 +10,15 @@ import java.util.stream.Collectors;
 
 public class BubbleSortAlgorithm {
     public void solve(InputStream inputStream, OutputStream outputStream) throws IOException {
+        // parse input data from inputStream
         Scanner scanner = new Scanner(inputStream);
         int n = scanner.nextInt();
         ArrayList<Integer> list = readListOfIntegers(scanner, n);
 
-        sort(n, list);
+        // implementation of algorithm
+        sort(list);
 
+        // print out results
         printoutResult(list, outputStream);
     }
 
@@ -36,7 +39,8 @@ public class BubbleSortAlgorithm {
         return list;
     }
 
-    private void sort(int n, ArrayList<Integer> list) {
+    private void sort(ArrayList<Integer> list) {
+        int n = list.size();
         for (int i = 1; i < n; i++) {
             for (int j = 0; j < i; j++) {
                 if (list.get(j) > list.get(i)) {
