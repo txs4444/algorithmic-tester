@@ -68,6 +68,10 @@ public class AlgorithmicTesterExtension implements TestTemplateInvocationContext
             LOGGER.error("Number of input files differ from number of defined output files under directory: {}", directory);
             throw new IllegalStateException("Number of input files differ from output files");
         }
+        if (inputFiles.size() == 0 || outputFiles.size() == 0) {
+            LOGGER.error("There is no test case files under directory: {}", directory);
+            throw new IllegalStateException("No test cases defined in directory");
+        }
         Iterator<File> inputFilesIterator = inputFiles.iterator();
         Iterator<File> outputFilesIterator = outputFiles.iterator();
         List<TestCase> testCases = new ArrayList<>();
