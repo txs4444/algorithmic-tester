@@ -41,10 +41,12 @@ public class BubbleSortAlgorithm {
 
     private void sort(ArrayList<Integer> list) {
         int n = list.size();
-        for (int i = 1; i < n; i++) {
-            for (int j = 0; j < i; j++) {
-                if (list.get(j) > list.get(i)) {
-                    swap(i, j, list);
+        for (int endIndex = 0; endIndex < n; endIndex++) {
+            for (int j = 1; j < n - endIndex; j++) {
+                int leftElementIndex = j - 1;
+                int rightElementIndex = j;
+                if (list.get(leftElementIndex) > list.get(rightElementIndex)) {
+                    swap(leftElementIndex, rightElementIndex, list);
                 }
             }
         }
