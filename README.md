@@ -1,4 +1,4 @@
-![main](https://github.com/github/docs/actions/workflows/gradle.yml/badge.svg?branch=main)
+![main](https://github.com/github/txs4444/algorithimc-tester/workflows/gradle.yml/badge.svg?branch=main)
 
 # Algorithmic-Tester
 
