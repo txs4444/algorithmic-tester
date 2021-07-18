@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'jacoco'
     id 'maven-publish'
 }
 
@@ -29,7 +30,7 @@ dependencies {
 
 }
 
-tasks.named('test') {
+test {
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
@@ -37,6 +38,11 @@ tasks.named('test') {
     filter {
         includeTestsMatching "*Test"
     }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
 }
 
 java {
