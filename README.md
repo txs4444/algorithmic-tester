@@ -1,3 +1,5 @@
+![main](https://github.com/github/docs/actions/workflows/gradle.yml/badge.svg?branch=main)
+
 # Algorithmic-Tester
 
 Algorithmic-Tester is an extension for Jupiter which aims to help testing coding challenges (only correctness not performance) for platforms such as HackerRank.
