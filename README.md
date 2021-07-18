@@ -8,8 +8,14 @@ Often examples are given. It could be nice to just copy those examples into inpu
 It can be achieved with [parametrized tests](https://junit.org/junit5/docs/current/user-guide/#writing-tests-parameterized-tests) but
 it requires additional effort and/or adjusting input format (i.e. rewriting sequence of number into java list) which can be error prone and mundane.
 
-# Example of usage
+# Usage
 Examples shown below are part of the test suit and can be found [here](src/test/java/software/txs4444/algorithms/tester/junit/extension/end2end)
+
+## Adding Algorithmic-Tester dependency to your project
+Algorithmic-Test is not present in maven repository. You need to clone/download the project, then build it and install into your local maven repository using gradle (gradle wrapper is added to the project):
+```./gradlew publish```
+Then add dependency to your project:
+```testImplementation('software.txs4444.algorithms:algorithmic-tester:<VERSION >')```
 
 ## Run for multiple test cases
 Given example runs *solve* method against each test case defined in *end2end* directory. Each test case is defined as two *input* and *output* files 
